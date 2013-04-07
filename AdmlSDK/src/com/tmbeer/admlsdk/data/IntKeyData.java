@@ -1,11 +1,11 @@
 package com.tmbeer.admlsdk.data;
 
 /**
- * Base data model for any instance with Integer ID
+ * Base abstract data model for any instance with Integer ID
  * @author kova_ski
  *
  */
-public class IntKeyData extends AbstractData<Integer> {
+public abstract class IntKeyData extends AbstractData<Integer> {
 	
 	/**
 	 * id = 0;

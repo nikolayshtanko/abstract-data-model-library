@@ -1,11 +1,11 @@
 package com.tmbeer.admlsdk.data;
 
 /**
- * Base data model for any instance with String ID
+ * Base abstract data model for any instance with String ID
  * @author kova_ski
  *
  */
-public class StringKeyData extends AbstractData<String> {
+public abstract class StringKeyData extends AbstractData<String> {
 	
 	/**
 	 * id = "";
