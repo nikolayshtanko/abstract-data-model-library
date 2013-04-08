@@ -1,6 +1,6 @@
 package com.tmbeer.admlsdk.storage;
 
-import android.util.Log;
+import com.tmbeer.admlsdk.utils.Log;
 
 
 /**
@@ -12,9 +12,6 @@ import android.util.Log;
  */
 public abstract class AbstractStorage<K,T> implements IStorage {
 	
-	// TODO move to utils
-	public static final String TAG = "storage";
-	
 	public AbstractStorage() {
 		onCreate();
 		onCreateMessage();
@@ -22,12 +19,12 @@ public abstract class AbstractStorage<K,T> implements IStorage {
 	
 	/** log message on creating storage */
 	private void onCreateMessage() {
-		Log.d(TAG, "Storage \"" + getClass().getSimpleName() + "\" was created");
+		Log.msg("Storage \"" + getClass().getSimpleName() + "\" was created");
 	}
 	
 	@Override
 	public void onCreate() {
-		Log.d(TAG, getClass().getSimpleName() + "|" + "onCreate()");
+		Log.msg(getClass().getSimpleName() + "|" + "onCreate()");
 	}
 
 }
