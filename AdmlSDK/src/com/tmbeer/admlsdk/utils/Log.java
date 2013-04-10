@@ -3,6 +3,7 @@ package com.tmbeer.admlsdk.utils;
 
 /**
  * Simple logger for message
+ * TAG = "adml-storage"
  * @author kova_ski
  *
  */
