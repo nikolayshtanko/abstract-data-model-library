@@ -1,20 +1,29 @@
 package com.tmbeer.admlsdk.utils;
 
+
 import com.tmbeer.admlsdk.storage.IStorage;
 
 /**
- * Class for compile information about read row amount
+ * Class for compile information about read row amount for IStorage instance 
  * @author kova_ski
  *
  */
 public class Stat {
 	
-	private static final String MESSAGE = "Storage \"%s\" loading with %d rows";
+	private static final String MESSAGE = "Storage \"%s\" loaded with %d rows for %d seconds";
 	private int rowCount;
+	private long time;
 	private String storageName = "";
 	
 	public Stat(final IStorage storage) {
 		storageName = storage.getClass().getSimpleName();
+	}
+	
+	/**
+	 * Starting time calculation
+	 */
+	public void start() {
+		time = Utils.currentTime();
 	}
 	
 	/**
@@ -27,8 +36,8 @@ public class Stat {
 	/**
 	 * complete calculation and print the result
 	 */
-	public void complete() {
-		Log.msg(String.format(MESSAGE, storageName, rowCount));
+	public void stop() {
+		Log.msg(String.format(MESSAGE, storageName, rowCount, (Utils.currentTime() - time)));
 	}
 
 }
