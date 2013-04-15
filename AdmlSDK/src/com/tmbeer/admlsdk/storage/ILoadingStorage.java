@@ -6,6 +6,9 @@ package com.tmbeer.admlsdk.storage;
  *
  */
 public interface ILoadingStorage extends IStorage {
+	
+	/** loading the storage */
+	public void loading();
 
 	/** Invoke on complete loading storage */
 	public void onLoadingComplete();
