@@ -13,10 +13,8 @@ import com.tmbeer.admlsdk.utils.Stat;
  */
 public abstract class AbstractStorage<K,T> implements IStorage {
 	
-	/** stat object for the storage */
+	/** statistic object for the storage */
 	protected Stat mStat = new Stat(this);
-	/** the name of this storage */
-	protected final String mName = getClass().getSimpleName();
 	
 	public AbstractStorage() {
 		onCreate();
@@ -25,12 +23,12 @@ public abstract class AbstractStorage<K,T> implements IStorage {
 	
 	/** log message on creating storage */
 	private void onCreateMessage() {
-		Log.msg("Storage \"" + mName + "\" was created");
+		Log.msg("Storage \"" + mStat.getStorageName() + "\" was created");
 	}
 	
 	@Override
 	public void onCreate() {
-		Log.msg(mName + "|" + "onCreate()");
+		Log.msg(mStat.getStorageName() + "|" + "onCreate()");
 	}
 
 }

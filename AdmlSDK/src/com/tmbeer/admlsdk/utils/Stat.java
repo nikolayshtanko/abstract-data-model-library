@@ -20,6 +20,13 @@ public class Stat {
 	}
 	
 	/**
+	 * the name of this Storage
+	 */
+	public String getStorageName() {
+		return storageName;
+	}
+	
+	/**
 	 * Starting time calculation
 	 */
 	public void start() {
