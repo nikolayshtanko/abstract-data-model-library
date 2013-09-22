@@ -14,4 +14,9 @@ public abstract class AbstractLoadingStorage<K, T> extends AbstractStorage<K, T>
 		
 	}
 	
+	@Override
+	public void onCreate() {
+		super.onCreate();
+	}
+	
 }
