@@ -419,7 +419,7 @@ https://github.com/Game-Insight/funzay-mobile-gl/blob/master/README.md
 
 
 
-INTRODUCTION
+INTRODUCTION - [GL!]
 -----------------------
 The Insight Center GL renderer is an add-on for FunzaySDK with native calls, LUA binding and JS-LUA bridge. It provide more optimized and additional mechanism for render offer and other windows using OpenGL. All logic are loaded from server, the game only must call some API methods on draw frame and on creating-recreating game scenes. It�s written on C and fully support both iOS4+ and Android2.2+ platforms. Integration is very simple and consists of several steps.
 
