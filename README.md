@@ -413,3 +413,291 @@ That's all. Then read this manual to load layer in your game scene:
 https://github.com/Game-Insight/funzay-mobile-gl/blob/master/README.md
 
 
+
+
+
+
+
+
+INTRODUCTION
+-----------------------
+The Insight Center GL renderer is an add-on for FunzaySDK with native calls, LUA binding and JS-LUA bridge. It provide more optimized and additional mechanism for render offer and other windows using OpenGL. All logic are loaded from server, the game only must call some API methods on draw frame and on creating-recreating game scenes. It�s written on C and fully support both iOS4+ and Android2.2+ platforms. Integration is very simple and consists of several steps.
+
+GETTING STARTED
+----------------------------
+Follow platform dependent steps to include this sources to your project.
+
+iOS - https://github.com/Game-Insight/funzay-mobile-ios#insight-center-gl-renderer-funzay-mobile-gl-add-on
+
+Android - https://github.com/Game-Insight/funzay-mobile-android#insight-center-gl-renderer-funzay-mobile-gl-add-on
+
+Than from your C code you must call several functions:
+
+```C
+#include "FunzayExternals.h"
+
+print("Funzay GL renderer version %i", FZ_PLUGIN_VERSION); // here is plugin version
+
+FzDirector_init(screen.width, screen.height); // on game scene loaded (for scenes with funzay offer windows) with screen dimensions in dp
+
+FzDirector_draw(); // each frame rendering, skip to hide funzay for a while
+
+FzDirector_state(FZ_STATE_PAUSE); // to pause all funzay animation
+
+FzDirector_state(FZ_STATE_RESUME); // to resume from pause
+
+int state = FzDirector_touch(FZ_TOUCH_BEGIN, location.x, location.y); // to send touch events, return 1 if touch was processed
+
+FzDirector_destroy(); // on game scene unload
+```
+
+Screen dimensions and touch positions on init must be in **dp**. You can call init and destroy several times, for example if funzay is already loaded, and screen size is changes, you can call FzDirector_init() twicely. Or call FzDirector_destroy() on scene unload and on game exit without fear.
+
+If you want to hide all funzay windows, simply skip FzDirector_draw() on draw frame. To pause or resume, send equal states FZ_STATE_PAUSE and FZ_STATE_RESUME.
+
+FzDirector_touch() return 1 if touch event was processed and 0 otherwise. Usual touch scenario: on touch begin you ask FzDirector, if it return 1, all touch events must send to FzDirector (move, end, cancel). Later if it return 0, you can ignore other touches at all. If on begin touch FzDirector return 0, all touch events you can send in your listeners. Touch positions started from **left top corner**.
+
+To lock funzay window appearance, call standard funzay API: ```fzMobile.allowEvents = NO;``` for iOS and ```fzView.getController().setPushesAllowed(false);``` for Android.
+
+All methods must be called from GL thread.
+
+UNITY EXAMPLE
+-------------
+Create new cs script and add it as new component to **Main Camera**
+```CSharp
+using UnityEngine;
+using System.Collections;
+using System.Runtime.InteropServices;
+
+public class fzPlugin : MonoBehaviour {
+#if UNITY_ANDROID
+	private const string FUNZAY_NATIVE_MODULE = "funzay";
+#else
+	private const string FUNZAY_NATIVE_MODULE = "__Internal";
+#endif
+	
+	// initialization, need be called on creation in GL thread
+	[DllImport(FUNZAY_NATIVE_MODULE)]
+	private static extern void FzDirector_init (int width, int height);
+	
+	// draw method, need be called in render circle
+	[DllImport(FUNZAY_NATIVE_MODULE)]
+	private static extern void FzDirector_draw ();
+	
+	// mouse tracking, if return 1, tap was processed
+	[DllImport(FUNZAY_NATIVE_MODULE)]
+	private static extern int FzDirector_touch (int touchEvent, float x, float y);
+
+	[DllImport(FUNZAY_NATIVE_MODULE)]
+	private static extern int FzDirector_touch (int touchEvent, float x, float y);
+
+	[DllImport(FUNZAY_NATIVE_MODULE)]
+	private static extern int FzDirector_state (int state);
+
+	[DllImport(FUNZAY_NATIVE_MODULE)]
+	private static extern void FzDirector_destroy ();
+	
+	private bool m_InTouch = false;
+    
+    private bool m_IsVisible = true;
+
+	// Use this for initialization
+	void Start () {
+
+	}
+    
+    void Start () {
+		StartCoroutine(FzStart());	
+	}
+	
+	IEnumerator FzStart () {
+		FzDirector_init (Screen.width, Screen.height);
+		while (true) {
+   			yield return new WaitForEndOfFrame();
+			if (m_IsVisible) {
+				FzDirector_draw ();
+			}
+		}
+	}
+    // global method in processin onTouch events
+    public static bool UpdateInput() {
+		if (m_IsVisible) {
+			if (Input.touchCount > 0) {
+				var touchEvent = -1;
+				var touch = Input.GetTouch(0);
+                switch (touch.phase) {
+					case TouchPhase.Began:
+						m_InTouch = true;
+						touchEvent = 0;
+						break;
+					case TouchPhase.Moved:
+						touchEvent = 1;
+						break;
+					case TouchPhase.Ended:
+						touchEvent = 2;
+						break;
+					case TouchPhase.Canceled:
+						touchEvent = 3;
+						break;
+					case TouchPhase.Stationary:
+						touchEvent = 1;
+						break;
+					default:
+                        return false;
+                }
+				if (m_InTouch) {
+					int status = FzDirector_touch (touchEvent, touch.position.x, Screen.height - touch.position.y);
+					if(status == 0) {
+						m_InTouch = false;
+					}
+				}
+			}
+			return m_InTouch;
+		}
+		return false;
+	}
+
+	void OnDestroy() {
+        m_IsVisible = false;
+		FzDirector_destroy ();
+	}
+
+	void OnPauseGame() { // Some pause message
+		FzDirector_state(1);
+	}
+
+	void OnResumeGame() { // Some resume message
+		FzDirector_state(0);
+	}
+	
+	bool IsInTouch () { // ability to check in other objects, is this touch processed by Funzay
+		return m_InTouch;
+	}
+    
+    void SetVisibility(bool visibility) { // ability to show / hide funzay
+        m_IsVisible = visibility;
+    }
+}
+```
+
+COCOS2D-X EXAMPLE
+-----------------
+Here presented example of game object, CCNode inheritor. Simply add it to CCScene as a child.
+
+FunzayNode.h
+```C
+#ifndef __FUNZAY_NODE_H__
+#define __FUNZAY_NODE_H__
+
+#include "base_nodes/CCNode.h"
+#include "touch_dispatcher/CCTouchDispatcher.h"
+#include "touch_dispatcher/CCTouchDelegateProtocol.h"
+#include "touch_dispatcher/CCTouch.h"
+
+#define FUNZAY_TOUCH_DELEGATE_PRIORITY 100
+
+USING_NS_CC;
+
+/** FunzayNode
+ */
+class FunzayNode: public CCNode, public CCTouchDelegate {
+
+public:
+	FunzayNode();
+	virtual ~FunzayNode();
+	static FunzayNode* create();
+	virtual void draw();
+	virtual bool init();
+	virtual bool ccTouchBegan(CCTouch* touch, CCEvent* event);
+	virtual void ccTouchEnded(CCTouch *touch, CCEvent* event);
+	virtual void ccTouchCancelled(CCTouch *touch, CCEvent* event);
+	virtual void ccTouchMoved(CCTouch* touch, CCEvent* event);
+	virtual void registerWithTouchDispatcher();
+	virtual void pause();
+	virtual void resume();
+};
+
+#endif // __FUNZAY_NODE_H__
+```
+FunzayNode.cpp
+```cpp
+#include "FunzayNode.h"
+#include "FunzayExternals.h"
+#include "CCDirector.h"
+#include "touch_dispatcher/CCTouchDispatcher.h"
+#include "touch_dispatcher/CCTouch.h"
+#include "cocoa/CCGeometry.h"
+
+USING_NS_CC;
+
+FunzayNode* FunzayNode::create() {
+	FunzayNode* pRet = new FunzayNode();
+	if (pRet && pRet->init()) {
+		pRet->autorelease();
+	} else {
+		CC_SAFE_DELETE(pRet);
+	}
+
+	return pRet;
+}
+
+FunzayNode::FunzayNode() {
+}
+
+FunzayNode::~FunzayNode() {
+	FzDirector_destroy();
+}
+
+bool FunzayNode::init() {
+	CCSize size = CCDirector::sharedDirector()->getVisibleSize();
+	FzDirector_init(size.width, size.height);
+	registerWithTouchDispatcher();
+    return true;
+}
+
+void FunzayNode::draw() {
+	FzDirector_draw();
+}
+
+void FunzayNode::pause() {
+	FzDirector_state(FZ_STATE_PAUSE);
+}
+
+void FunzayNode::resume() {
+	FzDirector_state(FZ_STATE_RESUME);
+}
+
+void FunzayNode::registerWithTouchDispatcher() {
+	CCDirector* pDirector = CCDirector::sharedDirector();
+	pDirector->getTouchDispatcher()->addTargetedDelegate((CCTouchDelegate *) this, FUNZAY_TOUCH_DELEGATE_PRIORITY, true);
+}
+
+bool FunzayNode::ccTouchBegan(CCTouch* touch, CCEvent* event) {
+	CC_UNUSED_PARAM(event);
+	CCPoint origin = CCDirector::sharedDirector()->getVisibleOrigin();
+	CCPoint location = touch->getLocationInView();
+	return FzDirector_touch(FZ_TOUCH_BEGIN, location.x - origin.x, location.y - origin.y);
+}
+
+void FunzayNode::ccTouchEnded(CCTouch *touch, CCEvent* event) {
+	CC_UNUSED_PARAM(event);
+	CCPoint origin = CCDirector::sharedDirector()->getVisibleOrigin();
+	CCPoint location = touch->getLocationInView();
+	FzDirector_touch(FZ_TOUCH_END, location.x - origin.x, location.y - origin.y);
+}
+
+void FunzayNode::ccTouchCancelled(CCTouch *touch, CCEvent* event) {
+	CC_UNUSED_PARAM(event);
+	CCPoint origin = CCDirector::sharedDirector()->getVisibleOrigin();
+	CCPoint location = touch->getLocationInView();
+	FzDirector_touch(FZ_TOUCH_CANCEL, location.x - origin.x, location.y - origin.y);
+}
+
+void FunzayNode::ccTouchMoved(CCTouch* touch, CCEvent* event) {
+	CC_UNUSED_PARAM(event);
+	CCPoint origin = CCDirector::sharedDirector()->getVisibleOrigin();
+	CCPoint location = touch->getLocationInView();
+	FzDirector_touch(FZ_TOUCH_MOVE, location.x - origin.x, location.y - origin.y);
+}
+```
+
